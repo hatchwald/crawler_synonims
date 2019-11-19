@@ -4,6 +4,7 @@
   "description": "tool for crawling synonim database from another site , and import it to our database",
   "main": "index.js",
   "dependencies": {
+    "jsonfile": "^5.0.0",
     "puppeteer": "^2.0.0"
   },
   "devDependencies": {},
