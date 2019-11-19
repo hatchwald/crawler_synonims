@@ -29,7 +29,6 @@ const file_json = 'result.json';
   for (var abj_syn of synonimData) {
     await page.goto(abj_syn.link)
     const nav_els = await page.$$('.article-post .text-center span')
-    // console.log(nav_els[1])
     const AbjWord = await page.evaluate( () => {
       let link_abjword = []
       let AbjWordEl = document.querySelectorAll('.article-post ul li')
@@ -43,40 +42,11 @@ const file_json = 'result.json';
           console.log(error)
         }
         link_abjword.push(abjword_json)
-        
-        // get page number
-        // let nav_page = document.querySelectorAll('.article-post .text-center span')
-        // if(nav_page.length > 0){
-        //   let last_arrs = nav_page[nav_page.length - 1] 
-        //   let last_page = last_arrs.querySelector('span a').text
-        //   let current_url = window.location.href 
-        //   let regs = /[0-9]+(?!.*[0-9])/;
-        //   for (let index = 2; index <= last_page; index++) {
-        //     var next_url = current_url.replace(regs,index)
-        //     await page.goto(next_url)
-        //     //doing something 
-        //     const next_page =  await page.evaluate(() => {
-        //       let el_next_page = document.querySelectorAll('.article-post ul li')
-        //       el_next_page.forEach(element => {
-        //         let next_page_json = {}
-        //         try {
-        //           next_page_json.attribute = element.querySelector('a').text
-        //           next_page_json.link = element.querySelector('a').getAttribute('href')
-        //         } catch (error) {
-        //           console.error(error)
-        //         }
-        //         link_abjword.push(next_page_json)
-        //       });
-        //     })
-        //     console.dir(next_page)
-        //   }
-        // }
       });
       return link_abjword
     })
     
     if( nav_els.length > 0){
-      // var max_nav = nav_els[ nav_els.length - 1 ]
      const temps = await page.evaluate( () => {
        let all_temps = document.querySelectorAll('.article-post .text-center span')
        let max_all = all_temps[ all_temps.length -1 ]
@@ -86,10 +56,11 @@ const file_json = 'result.json';
 
      let regs = /[0-9]+(?!.*[0-9])/;
      var current_url = page.url();
-     for (let index = 2; index <= temps; index++) {
+     for (let index = 2; index <= 3; index++) {
       var next_url = current_url.replace(regs,index)
       await page.goto(next_url)
       const next_pages = await page.evaluate( () => {
+        let temp_next = [];
         let el_next_page = document.querySelectorAll('.article-post ul li')
         el_next_page.forEach(element => {
           let next_page_json = {}
@@ -99,19 +70,23 @@ const file_json = 'result.json';
           } catch (error) {
             console.error(error)
           }
-          arr_temp.push(next_page_json)
+          temp_next.push(next_page_json)
         });
+        return temp_next
       })
-       
+      //  arr_temp.push(next_pages)
+      //  console.log(next_pages)
+      arr_temp.push(AbjWord.concat(next_pages))
      }
 
     }
-    arr_temp.push(AbjWord)
+    // arr_temp.push(AbjWord)
     // console.dir(arr_temp)
   }
-  var json_val = JSON.stringify(arr_temp);
-  jsonfile.writeFile(file_json,json_val).then(res =>  {
-    console.log('write complete')
-  }).catch(error  =>  console.error(error))
+  console.dir(arr_temp)
+  // var json_val = JSON.stringify(arr_temp);
+  // jsonfile.writeFile(file_json,json_val).then(res =>  {
+  //   console.log('write complete')
+  // }).catch(error  =>  console.error(error))
   await browser.close();
 })();
