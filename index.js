@@ -6,7 +6,10 @@ const file_json = 'result.json';
   const browser = await puppeteer.launch({headless:false});
   const page = await browser.newPage();
   await page.goto('https://lektur.id/daftar-sinonim/');
+  page.setDefaultTimeout(300000)
   var arr_temp = [];
+  var arr1 = [];
+  var arr2 = [];
   const synonimData = await page.evaluate(() => {
   	let links = []
     let linksEl = document.querySelectorAll('.article-post ul li')
@@ -28,11 +31,12 @@ const file_json = 'result.json';
   //deeper loop
   for (var abj_syn of synonimData) {
     await page.goto(abj_syn.link)
+    page.setDefaultTimeout(300000)
     const nav_els = await page.$$('.article-post .text-center span')
     const AbjWord = await page.evaluate( () => {
       let link_abjword = []
       let AbjWordEl = document.querySelectorAll('.article-post ul li')
-      AbjWordEl.forEach( abj_wordel => {
+      AbjWordEl.forEach( (abj_wordel) => {
         let abjword_json = {}
         try {
           abjword_json.attribute = abj_wordel.querySelector('a').text
@@ -45,7 +49,8 @@ const file_json = 'result.json';
       });
       return link_abjword
     })
-    
+    arr1.push(AbjWord)
+
     if( nav_els.length > 0){
      const temps = await page.evaluate( () => {
        let all_temps = document.querySelectorAll('.article-post .text-center span')
@@ -56,13 +61,13 @@ const file_json = 'result.json';
 
      let regs = /[0-9]+(?!.*[0-9])/;
      var current_url = page.url();
-     for (let index = 2; index <= 3; index++) {
+     for (let index = 2; index <= temps; index++) {
       var next_url = current_url.replace(regs,index)
       await page.goto(next_url)
       const next_pages = await page.evaluate( () => {
         let temp_next = [];
         let el_next_page = document.querySelectorAll('.article-post ul li')
-        el_next_page.forEach(element => {
+        el_next_page.forEach( (element) => {
           let next_page_json = {}
           try {
             next_page_json.attribute = element.querySelector('a').text
@@ -74,19 +79,42 @@ const file_json = 'result.json';
         });
         return temp_next
       })
-      //  arr_temp.push(next_pages)
-      //  console.log(next_pages)
-      arr_temp.push(AbjWord.concat(next_pages))
+       arr2.push(next_pages)
      }
 
     }
-    // arr_temp.push(AbjWord)
-    // console.dir(arr_temp)
   }
-  console.dir(arr_temp)
-  // var json_val = JSON.stringify(arr_temp);
-  // jsonfile.writeFile(file_json,json_val).then(res =>  {
-  //   console.log('write complete')
-  // }).catch(error  =>  console.error(error))
+  var final_arr = arr1.concat(arr2)
+  var rest_arr = []
+  for(var element of final_arr){
+    for(var elements of element){
+      //digging deeper for reach words
+      await page.goto(elements.link)
+      page.setDefaultTimeout(300000)
+      var orig_word = elements.link.split('sinonim-').pop().replace(/[^\w\s]/gi, ' ')
+      let all_synonim_json = {}
+      const all_synonims = await page.evaluate( () => {
+        let arr_temp_synonim = []
+        let all_synonim_el = document.querySelectorAll('.article-post ol li')
+        all_synonim_el.forEach( el => {
+          try {
+             arr_temp_synonim.push(el.querySelector('li a').text)
+          } catch (error) {
+            console.error(error)
+          }
+          
+        });
+        return arr_temp_synonim
+      })
+      all_synonim_json[orig_word] = all_synonims
+      rest_arr.push(all_synonim_json)
+    }
+  }
+ 
+  
+  // console.dir(rest_arr)
+  jsonfile.writeFile(file_json,rest_arr).then(res =>  {
+    console.log('write complete')
+  }).catch(error  =>  console.error(error))
   await browser.close();
 })();
